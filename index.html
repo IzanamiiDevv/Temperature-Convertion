@@ -7,6 +7,67 @@
     <link rel="stylesheet" href="./style/style.css">
 </head>
 <body>
-    
+    <select id="unit">
+        <option value="faren">Fahrenheit</option>
+        <option value="celci">Celsius</option>
+    </select>
+    <input type="number" id="temp">
+    <button id="btn">Caculate</button>
+    <span> = </span> <span id="result"></span>
 </body>
+
+<script>
+
+let wasmMemory = new WebAssembly.Memory({ initial: 256, maximum: 256 });
+let wasmTable = new WebAssembly.Table({
+    initial: 1,
+    maximum: 1,
+    element: 'anyfunc'
+});
+
+
+let asmLibraryArg = {
+    fd_close: ()=>{},
+    fd_write: ()=>{},
+    fd_seek: ()=>{},
+    abort: ()=>{},
+    __handle_over_flow: () => {},
+    emscripten_resize_heap: () => {},
+    __lock: () => {},
+    __unlock: () => {},
+    memory: wasmMemory,
+    table: wasmTable
+};
+
+
+let info = {
+    env: asmLibraryArg,
+    wasi_snapshot_preview1: asmLibraryArg
+};
+
+
+async function instantiate() {
+    let response = await fetch('./src/temp.wasm');
+    let bytes = await response.arrayBuffer();
+    let wasmObj = await WebAssembly.instantiate(bytes, info);
+    return new Promise(res => res(wasmObj.instance.exports))
+}
+
+let result = document.getElementById('result');
+
+document.getElementById('btn').addEventListener('click',()=>{
+    const unit = document.getElementById('unit').value;
+    let temp = parseInt(document.getElementById('temp').value) ? parseInt(document.getElementById('temp').value) :0;
+    
+    instantiate().then(method => {
+        if(unit == "faren") {
+            result.innerText = method.faren(temp);
+        } else if (unit == "celci") {
+            result.innerText = method.celci(temp);
+        }
+    });
+});
+
+</script>
+
 </html>
